@@ -4,17 +4,17 @@
 // @namespace   https://pokezz.com/
 // @include     https://pokezz.com/*
 // @include     http://*.pokezz.com/*
-// @include     http://pokezz.com/*
-// @version     1
+// @include     http://*.pokesnipers.com/*
+// @include     http://pokesnipers.com/*
+// @version     2
 // @grant       none
 // @require       http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js
 // @require       https://raw.githubusercontent.com/brandonaaron/livequery/master/jquery.livequery.min.js
 // ==/UserScript==
-// @description This Script filters Pokezz.com Site for local Pokemons only.
+// @description This Script filters Pokezz.com, pokesnipers.com Sites for local Pokemons only.
 
 var showLocalOnly = true; // Hide Entries not matching
 var useMiles = false; // km / miles
-var onlyShowMatches = true;
 var locations = [
   [
   'Köln', // Name
@@ -79,44 +79,76 @@ function notifyMe(node, dist, loc) {
 
 }
 
+var onlyShowMatches = true; // False only for debugging
+
 $(document).ready(function () {
-  
   if (!Notification) {
-    alert('Desktop notifications not available in your browser. Try Chromium.'); 
+    alert('Desktop notifications not available in your browser. Try Chromium.');
     return;
   }
-
-  if (Notification.permission !== "granted")
-    Notification.requestPermission();
- 
- 
-  $('.url-list[href^=\'pokesniper2\']').livequery(function () {
-    var temp = $(this).find('.url-list[href^=\'pokesniper2\'][tagged!=\'true\']');
-    if (temp.is('.url-list[href^=\'pokesniper2\'][tagged!=\'true\']')) {
-      var val = temp.next().attr('data-clipboard-text');
-     // console.log(val);
-      var isLocal = false;
-      var closeTo = "";
-      var minDistance = 40000;
-      var result = "";
-      locations.forEach(function (entry) {
-        var distance = haversineDistance(entry, val.split(','));
-        if ( distance <= entry[3]){
-          isLocal = true;
-          if (distance < minDistance){
-            minDistance = distance;
-            closeTo = entry[0];
+  if (Notification.permission !== 'granted')
+  Notification.requestPermission();
+  if (window.location.host == 'pokezz.com') {
+    // pokezz.com scheme
+    $('.url-list[href^=\'pokesniper2\']').livequery(function () {
+      var temp = $(this).find('.url-list[href^=\'pokesniper2\'][tagged!=\'true\']');
+      if (temp.is('.url-list[href^=\'pokesniper2\'][tagged!=\'true\']')) {
+        var val = temp.next().attr('data-clipboard-text');
+        // console.log(val);
+        var isLocal = false;
+        var closeTo = '';
+        var minDistance = 40000;
+        var result = '';
+        locations.forEach(function (entry) {
+          var distance = haversineDistance(entry, val.split(','));
+          if (distance <= entry[3]) {
+            isLocal = true;
+            if (distance < minDistance) {
+              minDistance = distance;
+              closeTo = entry[0];
+            }
           }
+          if (distance <= entry[3] || !onlyShowMatches)
+          result += '&nbsp;<span style=\'color:' + (distance > entry[3] ? 'red;' : 'green;') + '\'> ' + distance + (useMiles ? ' miles' : 'km') + '  from ' + entry[0] + '</span> ';
+        });
+        if (showLocalOnly && !isLocal) {
+          $(temp).closest('li.collection-item').hide();
+        } else {
+          temp.attr('tagged', 'true').append(result);
+          notifyMe(temp, minDistance, closeTo);
         }
-        if (distance <= entry[3] || !onlyShowMatches)
-          result += '&nbsp;<span style=\'color:' + (distance > entry[3] ? "red;" : "green;" ) + '\'> ' + distance + (useMiles ? " miles" : "km") + '  from ' + entry[0] + "</span> " ;
-      });
-      if ( showLocalOnly && !isLocal){
-        $(temp).closest("li.collection-item").hide();
-      }else{
-        temp.attr('tagged', 'true').append(result);
-        notifyMe(temp, minDistance, closeTo);
       }
-    }
-  });
+    });
+  }
+  if (window.location.host == 'pokesnipers.com') {
+    // http://pokesnipers.com/
+    $('.right[href^=\'pokesniper2\']').livequery(function () {
+      var temp = $(this).find('.right[href^=\'pokesniper2\'][tagged!=\'true\']');
+      if (temp.is('.right[href^=\'pokesniper2\'][tagged!=\'true\']')) {
+        var val = temp.parent().siblings('p').children('span') [2].firstChild.nodeValue;
+        var isLocal = false;
+        var closeTo = '';
+        var minDistance = 40000;
+        var result = '';
+        locations.forEach(function (entry) {
+          var distance = haversineDistance(entry, val.split(','));
+          if (distance <= entry[3]) {
+            isLocal = true;
+            if (distance < minDistance) {
+              minDistance = distance;
+              closeTo = entry[0];
+            }
+          }
+          if (distance <= entry[3] || !onlyShowMatches)
+          result += '&nbsp;<span style=\'color:' + (distance > entry[3] ? 'red;' : 'green;') + '\'> ' + distance + (useMiles ? ' miles' : 'km') + '  from ' + entry[0] + '</span> ';
+        });
+        if (showLocalOnly && !isLocal) {
+          $(temp).closest('li.collection-item').hide();
+        } else if (isLocal) {
+          temp.attr('tagged', 'true').append(result);
+          notifyMe(temp, minDistance, closeTo);
+        }
+      }
+    });
+  }
 });
