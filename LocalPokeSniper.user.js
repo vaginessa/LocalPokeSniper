@@ -3,6 +3,8 @@
 // @author      dfns_
 // @namespace   https://pokezz.com/
 // @include     https://pokezz.com/*
+// @include     http://*.pokezz.com/*
+// @include     http://pokezz.com/*
 // @version     1
 // @grant       none
 // @require       http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js
